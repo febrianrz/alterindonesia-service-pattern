@@ -3,12 +3,15 @@ namespace Alterindonesia\ServicePattern\Controllers;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Pagination\LengthAwarePaginator;
+use function PHPUnit\Framework\isInstanceOf;
 
 class BaseController
 {
     protected IServiceEloquent $service;
 
-    protected function response($result): \Illuminate\Http\JsonResponse
+    protected function response($result): \Illuminate\Http\JsonResponse | ResourceCollection
     {
         if($result['httpCode'] >= 200 && $result['httpCode'] < 300) {
             return $this->responseSuccess($result);
@@ -16,19 +19,19 @@ class BaseController
         return $this->responseError($result);
     }
 
-    protected function responseSuccess($result) : \Illuminate\Http\JsonResponse
+    protected function responseSuccess($result) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
         $responseData = null;
         if(isset($result['resource'])) {
-            if($result['data'] instanceof Collection) {
-                $responseData = $result['resource']::collection($result['data']);
+            if($result['data'] instanceof Collection || $result['data'] instanceof LengthAwarePaginator) {
+                return $result['resource']::collection($result['data']);
             } else {
-                $responseData = new $result['resource']($result['data']);
+                $responseData = [
+                    'message' => $result['messages'],
+                    'data' => new $result['resource']($result['data'])
+                ];
             }
-            return response()->json([
-                'message' => $result['messages'],
-                'data' => $responseData
-            ], $result['httpCode']);
+            return response()->json($responseData, $result['httpCode']);
         }
         return response()->json($result['data'], $result['httpCode']);
     }
@@ -41,7 +44,7 @@ class BaseController
         ]);
     }
 
-    public function index() : \Illuminate\Http\JsonResponse
+    public function index() : \Illuminate\Http\JsonResponse | ResourceCollection
     {
         $result = $this->service->index();
         return $this->response($result);

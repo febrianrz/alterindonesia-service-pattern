@@ -45,7 +45,9 @@ class BaseServiceEloquent implements IServiceEloquent
     {
 
         $this->result['data'] = QueryBuilder::for($this->model)
-            ->allowedFilters();
+            ->allowedFilters($this->getDefaultAllowedFilters())
+            ->allowedSorts($this->getDefaultAllowedSort())
+            ->paginate(request()->input('perPage') ?? 20);
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
     }
@@ -207,11 +209,11 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function getDefaultAllowedFilters(): array
     {
-        return $this->model::getFillable();
+        return (new $this->model())->getFillable();
     }
 
     public function getDefaultAllowedSort(): array
     {
-       return $this->model::getFillable();
+        return (new $this->model())->getFillable();
     }
 }
