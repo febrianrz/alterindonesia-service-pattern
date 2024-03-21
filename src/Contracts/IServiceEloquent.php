@@ -21,4 +21,7 @@ interface IServiceEloquent {
     public function onAfterUpdate(Model $model, array $data);
     public function onBeforeDelete(Model $model) : Model;
     public function onAfterDelete(Model $model);
+
+    public function getDefaultAllowedFilters(): array;
+    public function getDefaultAllowedSort(): array;
 }

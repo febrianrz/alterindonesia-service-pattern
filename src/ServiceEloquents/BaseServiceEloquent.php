@@ -6,6 +6,7 @@ use App\Http\ServicesEloquents\IResultInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class BaseServiceEloquent implements IServiceEloquent
 {
@@ -42,7 +43,9 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function index() : array
     {
-        $this->result['data'] = $this->model::all();
+
+        $this->result['data'] = QueryBuilder::for($this->model)
+            ->allowedFilters();
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
     }
@@ -200,5 +203,15 @@ class BaseServiceEloquent implements IServiceEloquent
     public function onAfterDelete(Model $model)
     {
         // TODO: Implement onAfterDelete() method.
+    }
+
+    public function getDefaultAllowedFilters(): array
+    {
+        return $this->model::getFillable();
+    }
+
+    public function getDefaultAllowedSort(): array
+    {
+       return $this->model::getFillable();
     }
 }
