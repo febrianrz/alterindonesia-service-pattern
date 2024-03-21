@@ -1,7 +1,6 @@
 {
     "name": "alterindonesia/service-pattern",
     "description": "Core service eloquent",
-    "type": "composer-plugin",
     "license": "MIT",
     "autoload": {
         "psr-4": {
