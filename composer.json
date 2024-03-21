@@ -1,0 +1,19 @@
+{
+    "name": "alterindonesia/service-pattern",
+    "description": "Core service eloquent",
+    "type": "composer-plugin",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Alterindonesia\\ServicePattern\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Developer",
+            "email": "developer@developer.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
