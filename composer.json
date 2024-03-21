@@ -15,5 +15,13 @@
         }
     ],
     "minimum-stability": "stable",
-    "require": {}
+    "require": {},
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Alterindonesia\\ServicePattern\\AlterindonesiaServicePatternProvider"
+            ],
+            "aliases": {}
+        }
+    }
 }
