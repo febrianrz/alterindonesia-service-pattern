@@ -3,15 +3,17 @@
 namespace Alterindonesia\ServicePattern\Contracts;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 
 interface IServiceEloquent {
     public function index();
     public function show($id);
-    public function store(array $data);
-    public function update($id, array $data);
+    public function store(FormRequest $request);
+    public function update($id, FormRequest $request);
     public function destroy($id);
-    public function getCreatedData(): array;
-    public function getUpdatedData(): array;
+    public function getCreatedData(array $data): array;
+    public function getUpdatedData(array $data): array;
     public function setUpdatedModel($id);
 
     // hook

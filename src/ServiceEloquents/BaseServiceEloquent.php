@@ -4,13 +4,15 @@ namespace Alterindonesia\ServicePattern\ServiceEloquents;
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use App\Http\ServicesEloquents\IResultInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class BaseServiceEloquent implements IServiceEloquent
 {
-    protected string $model;
+    protected Model $model;
     protected $updatedModel = null;
     protected $deletedModel = null;
 
@@ -27,9 +29,10 @@ class BaseServiceEloquent implements IServiceEloquent
     ];
 
     public function __construct(
-        string $model,
+        Model $model,
         string $resource=null,
-        string $request=null
+        string $request=null,
+        ...$args
     ) {
         $this->model = $model;
         $this->resource = $resource;
@@ -38,7 +41,6 @@ class BaseServiceEloquent implements IServiceEloquent
         $this->result['model'] = $model;
         $this->result['resource'] = $resource;
 
-        $this->auth = Auth::class;
     }
 
     public function index() : array
@@ -59,9 +61,9 @@ class BaseServiceEloquent implements IServiceEloquent
         return $this->result;
     }
 
-    public function store(array $data) : array
+    public function store(FormRequest $request) : array
     {
-        $record = $this->appendCreatedBy($this->getCreatedData());
+        $record = $this->appendCreatedBy($this->getCreatedData($request->validated()));
         $record = $this->onBeforeCreate($record);
         $this->result['data'] = $this->model::create($record);
         $this->onAfterCreate($this->result['data'], $record);
@@ -70,7 +72,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $this->result;
     }
 
-    public function update($id, array $data) : array
+    public function update($id, FormRequest $request) : array
     {
         if($this->updatedModel === null) {
             $this->setUpdatedModel($id);
@@ -83,7 +85,7 @@ class BaseServiceEloquent implements IServiceEloquent
             return $this->result;
         }
 
-        $record = $this->appendUpdatedBy($this->getUpdatedData());
+        $record = $this->appendUpdatedBy($this->getUpdatedData($request->validated()));
         $record = $this->onBeforeUpdate($record);
         $this->updatedModel->update($record);
         $this->onAfterUpdate($this->updatedModel, $record);
@@ -93,20 +95,12 @@ class BaseServiceEloquent implements IServiceEloquent
         return $this->result;
     }
 
-    public function getCreatedData(): array {
-        if($this->request){
-            $_request = app($this->request);
-            return $_request->validated();
-        }
-        return [];
+    public function getCreatedData(array $data): array {
+        return $data;
     }
 
-    public function getUpdatedData(): array {
-        if($this->request){
-            $_request = app($this->request);
-            return $_request->validated();
-        }
-        return [];
+    public function getUpdatedData(array $data): array {
+        return $data;
     }
 
     public function destroy($id) : array

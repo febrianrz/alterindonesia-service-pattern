@@ -2,6 +2,8 @@
 namespace Alterindonesia\ServicePattern\Controllers;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -10,6 +12,20 @@ use function PHPUnit\Framework\isInstanceOf;
 class BaseController
 {
     protected IServiceEloquent $service;
+
+    protected string $request;
+
+    protected string $resource;
+
+    /**
+     * @param  IServiceEloquent  $service
+     * @param  Request  $request
+     * @param  string|null  $resource
+     */
+    public function __construct(IServiceEloquent $service)
+    {
+        $this->service = $service;
+    }
 
     protected function response($result): \Illuminate\Http\JsonResponse | ResourceCollection
     {
@@ -33,7 +49,11 @@ class BaseController
             }
             return response()->json($responseData, $result['httpCode']);
         }
-        return response()->json($result['data'], $result['httpCode']);
+        $responseData = [
+            'message' => $result['messages'],
+            'data' => $result['data']
+        ];
+        return response()->json($responseData, $result['httpCode']);
     }
 
     protected function responseError($result) : \Illuminate\Http\JsonResponse
@@ -50,15 +70,19 @@ class BaseController
         return $this->response($result);
     }
 
-    public function store() : \Illuminate\Http\JsonResponse
+    public function store(Request $request) : \Illuminate\Http\JsonResponse
     {
-        $result = $this->service->store(request()->all());
+        $result = $this->service->store(app($this->request) ?? $request);
         return $this->response($result);
     }
 
-    public function update($id) : \Illuminate\Http\JsonResponse
+    public function update($id, FormRequest $request) : \Illuminate\Http\JsonResponse
     {
-        $result = $this->service->update($id, request()->all());
+        $payload = $request->all();
+        if($this->request) {
+            $payload = app($this->request)->validated();
+        }
+        $result = $this->service->update($id, $payload);
         return $this->response($result);
     }
 
