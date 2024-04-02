@@ -61,7 +61,7 @@ class BaseController
         return response()->json([
             'message' => $result['messages'] ?? 'Not Found',
             'data' => $result['data']
-        ]);
+        ], $result['httpCode']);
     }
 
     public function index() : \Illuminate\Http\JsonResponse | ResourceCollection
