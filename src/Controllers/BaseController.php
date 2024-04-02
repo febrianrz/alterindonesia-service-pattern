@@ -70,13 +70,13 @@ class BaseController
         return $this->response($result);
     }
 
-    public function store(Request $request) : \Illuminate\Http\JsonResponse
+    public function store(Request $request) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
         $result = $this->service->store(app($this->request) ?? $request);
         return $this->response($result);
     }
 
-    public function update($id, FormRequest $request) : \Illuminate\Http\JsonResponse
+    public function update($id, FormRequest $request) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
         $payload = $request->all();
         if($this->request) {
@@ -86,13 +86,13 @@ class BaseController
         return $this->response($result);
     }
 
-    public function show($id) : \Illuminate\Http\JsonResponse
+    public function show($id) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
         $result = $this->service->show($id);
         return $this->response($result);
     }
 
-    public function destroy($id) : \Illuminate\Http\JsonResponse
+    public function destroy($id) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
         $result = $this->service->destroy($id);
         return $this->response($result);
