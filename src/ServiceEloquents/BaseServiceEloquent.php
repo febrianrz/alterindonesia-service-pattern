@@ -45,13 +45,18 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function index() : array
     {
-
-        $this->result['data'] = QueryBuilder::for($this->model)
+        $query = QueryBuilder::for($this->model)
             ->allowedFilters($this->getDefaultAllowedFilters())
-            ->allowedSorts($this->getDefaultAllowedSort())
-            ->paginate(request()->input('perPage') ?? 20);
+            ->allowedSorts($this->getDefaultAllowedSort());
+        $query = $this->onBeforeList($query);
+        $this->result['data'] = $query->paginate(request()->input('perPage') ?? 20);
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
+    }
+
+    public function onBeforeList($query): QueryBuilder
+    {
+        return $query;
     }
 
     public function show($id) : array
@@ -61,9 +66,16 @@ class BaseServiceEloquent implements IServiceEloquent
         return $this->result;
     }
 
-    public function store(FormRequest $request) : array
+    public function store(FormRequest|array $request) : array
     {
-        $record = $this->appendCreatedBy($this->getCreatedData($request->validated()));
+        $payload = [];
+        if(is_array($request)){
+            $payload = $request;
+        } else {
+            $payload = $request->validated();
+        }
+
+        $record = $this->appendCreatedBy($this->getCreatedData($payload));
         $record = $this->onBeforeCreate($record);
         $this->result['data'] = $this->model::create($record);
         $this->onAfterCreate($this->result['data'], $record);
