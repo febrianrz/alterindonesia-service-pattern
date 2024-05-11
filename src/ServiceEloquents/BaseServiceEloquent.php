@@ -222,4 +222,14 @@ class BaseServiceEloquent implements IServiceEloquent
     {
         return (new $this->model())->getFillable();
     }
+
+    public function getRequest(): string
+    {
+        return $this->request;
+    }
+
+    public function getResource(): string
+    {
+        return $this->resource;
+    }
 }

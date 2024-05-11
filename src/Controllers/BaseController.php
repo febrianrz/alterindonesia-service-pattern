@@ -72,12 +72,14 @@ class BaseController
 
     public function store(Request $request) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
+        $this->request = $this->request ?? $this->service->getRequest();
         $result = $this->service->store(app($this->request) ?? $request);
         return $this->response($result);
     }
 
     public function update($id, FormRequest $request) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
+        $this->request = $this->request ?? $this->service->getRequest();
         $payload = $request->all();
         if($this->request) {
             $payload = app($this->request)->validated();
