@@ -3,6 +3,7 @@ namespace Alterindonesia\ServicePattern\ServiceEloquents;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -241,7 +242,7 @@ class BaseServiceEloquent implements IServiceEloquent
 
     }
 
-    public function onBeforeDelete(Model $model): Model
+    public function onBeforeDelete(Model $model): Model|Builder
     {
         return $model;
     }
