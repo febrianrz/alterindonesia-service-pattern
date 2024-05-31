@@ -14,7 +14,6 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected string $resource;
     protected string $request;
-    protected Auth $auth;
 
     protected array $result = [
         'model' => null,
@@ -34,12 +33,12 @@ class BaseServiceEloquent implements IServiceEloquent
     public function __construct(
         Model $model,
         string $resource=null,
-        string $request=null
+        string $request=null,
+        array ...$args
     ) {
         $this->model = $model;
         $this->resource = $resource;
         $this->request = $request;
-        $this->auth = Auth::guard('api');
 
         $this->result['model'] = $model;
         $this->result['resource'] = $resource;
