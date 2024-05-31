@@ -139,7 +139,7 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function destroy($id, string $field) : array
     {
-        $result = $this->validateModel($id);
+        $result = $this->validateModel($id, $field);
         if(!$result['status']){
             return $result;
         }

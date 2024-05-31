@@ -17,11 +17,6 @@ class BaseController
 
     protected string $resource;
 
-    /**
-     * @param  IServiceEloquent  $service
-     * @param  Request  $request
-     * @param  string|null  $resource
-     */
     public function __construct(IServiceEloquent $service)
     {
         $this->service = $service;
@@ -96,7 +91,7 @@ class BaseController
 
     public function destroy($id) : \Illuminate\Http\JsonResponse | ResourceCollection
     {
-        $result = $this->service->destroy($id);
+        $result = $this->service->destroy($id, null);
         return $this->response($result);
     }
 }
