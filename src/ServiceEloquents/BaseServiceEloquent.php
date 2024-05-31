@@ -137,7 +137,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $data;
     }
 
-    public function destroy($id, string $field) : array
+    public function destroy($id,$field=null) : array
     {
         $result = $this->validateModel($id, $field);
         if(!$result['status']){
