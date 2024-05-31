@@ -3,9 +3,8 @@ namespace Alterindonesia\ServicePattern\ServiceEloquents;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use \Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use Spatie\QueryBuilder\QueryBuilder;
 
