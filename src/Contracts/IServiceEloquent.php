@@ -19,9 +19,9 @@ interface IServiceEloquent {
     public function onBeforeCreate(array $data) : array;
     public function onAfterCreate(Model $model, array $data);
     public function onBeforeUpdate(array $data) : array;
-    public function onAfterUpdate(Model $model, array $data);
+    public function onAfterUpdate(Model $model, array $data) : void;
     public function onBeforeDelete(Model $model) : Model;
-    public function onAfterDelete(Model $model);
+    public function onAfterDelete(Model $model): void;
 
     public function getDefaultAllowedFilters(): array;
     public function getDefaultAllowedSort(): array;

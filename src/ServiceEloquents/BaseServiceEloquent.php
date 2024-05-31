@@ -145,6 +145,7 @@ class BaseServiceEloquent implements IServiceEloquent
         }
         $this->model = $this->onBeforeDelete($this->model);
         $this->model->delete();
+        $this->onAfterDelete($this->model);
         $this->result['data'] = $this->model;
         $this->result['messages'] = __("Data deleted successfully");
         return $this->result;
@@ -235,7 +236,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $data;
     }
 
-    public function onAfterUpdate(Model $model, array $data)
+    public function onAfterUpdate(Model $model, array $data): void
     {
 
     }
@@ -245,7 +246,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $model;
     }
 
-    public function onAfterDelete(Model $model)
+    public function onAfterDelete(Model $model): void
     {
         // TODO: Implement onAfterDelete() method.
     }
