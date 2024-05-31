@@ -11,10 +11,9 @@ interface IServiceEloquent {
     public function show($id);
     public function store(FormRequest $request);
     public function update($id, FormRequest $request);
-    public function destroy($id);
+    public function destroy($id, string $field);
     public function getCreatedData(array $data): array;
     public function getUpdatedData(array $data): array;
-    public function setUpdatedModel($id);
 
     // hook
     public function onBeforeCreate(array $data) : array;

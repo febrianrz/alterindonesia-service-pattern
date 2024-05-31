@@ -2,10 +2,8 @@
 namespace Alterindonesia\ServicePattern\ServiceEloquents;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
-use App\Http\ServicesEloquents\IResultInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -13,12 +11,10 @@ use Spatie\QueryBuilder\QueryBuilder;
 class BaseServiceEloquent implements IServiceEloquent
 {
     protected Model $model;
-    protected $updatedModel = null;
-    protected $deletedModel = null;
 
     protected string $resource;
     protected string $request;
-    protected $auth;
+    protected Auth $auth;
 
     protected array $result = [
         'model' => null,
@@ -28,44 +24,69 @@ class BaseServiceEloquent implements IServiceEloquent
         'httpCode' => 200
     ];
 
+    /**
+     * BaseServiceEloquent constructor.
+     * @param Model $model
+     * @param string|null $resource
+     * @param string|null $request
+     * @param mixed ...$args
+     */
     public function __construct(
         Model $model,
         string $resource=null,
-        string $request=null,
-        ...$args
+        string $request=null
     ) {
         $this->model = $model;
         $this->resource = $resource;
         $this->request = $request;
+        $this->auth = Auth::guard('api');
 
         $this->result['model'] = $model;
         $this->result['resource'] = $resource;
 
     }
 
+    /**
+     * @return array
+     */
     public function index() : array
     {
         $query = QueryBuilder::for($this->model)
             ->allowedFilters($this->getDefaultAllowedFilters())
             ->allowedSorts($this->getDefaultAllowedSort());
+
         $query = $this->onBeforeList($query);
+        $query = $this->getDefaultWhere($query);
         $this->result['data'] = $query->paginate(request()->input('perPage') ?? 20);
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
     }
 
+    /**
+     * @param $query
+     * @return QueryBuilder
+     */
     public function onBeforeList($query): QueryBuilder
     {
         return $query;
     }
 
-    public function show($id) : array
+    /**
+     * @param $id
+     * @param $field
+     * @return array
+     */
+    public function show($id, $field=null) : array
     {
-        $this->result['data'] = $this->model::find($id);
+        $this->result['data'] = $this->find($id, $field);
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
     }
 
+    /**
+     * @param FormRequest|array $request
+     * @return array
+     */
     public function store(FormRequest|array $request) : array
     {
         $payload = [];
@@ -84,29 +105,31 @@ class BaseServiceEloquent implements IServiceEloquent
         return $this->result;
     }
 
-    public function update($id, FormRequest $request) : array
+    /**
+     * @param $id
+     * @param  FormRequest|array  $request
+     * @return array
+     */
+    public function update($id, FormRequest|array $request) : array
     {
-        if($this->updatedModel === null) {
-            $this->setUpdatedModel($id);
+        $result = $this->validateModel($id);
+        if(!$result['status']){
+            return $result;
         }
-
-        if(!$this->updatedModel) {
-            $this->result['messages'] = __("Data not found");
-            $this->result['data'] = null;
-            $this->result['httpCode'] = 404;
-            return $this->result;
-        }
-
-        $record = $this->appendUpdatedBy($this->getUpdatedData($request->validated()));
+        $data = is_array($request) ? $request : $request->validated();
+        $record = $this->appendUpdatedBy($this->getUpdatedData($data));
         $record = $this->onBeforeUpdate($record);
-        $this->updatedModel->update($record);
-        $this->onAfterUpdate($this->updatedModel, $record);
-        $this->result['data'] = $this->updatedModel;
+        $this->onAfterUpdate($this->model, $record);
+        $this->result['data'] = $this->model;
         $this->result['messages'] = __("Data updated successfully");
         $this->result['httpCode'] = 200;
         return $this->result;
     }
 
+    /**
+     * @param  array  $data
+     * @return array
+     */
     public function getCreatedData(array $data): array {
         return $data;
     }
@@ -115,42 +138,21 @@ class BaseServiceEloquent implements IServiceEloquent
         return $data;
     }
 
-    public function destroy($id) : array
+    public function destroy($id, string $field) : array
     {
-        if($this->deletedModel === null) {
-            $this->setDeletedModel($id);
+        $result = $this->validateModel($id);
+        if(!$result['status']){
+            return $result;
         }
-
-        if(!$this->deletedModel) {
-            $this->result['messages'] = __("Data not found");
-            $this->result['data'] = null;
-            $this->result['httpCode'] = 404;
-            return $this->result;
-        }
-
-        $this->deletedModel = $this->onBeforeDelete($this->deletedModel);
-        $this->deletedModel->delete();
-        $this->onAfterDelete($this->deletedModel);
-        $this->result['data'] = $this->deletedModel;
+        $this->model = $this->onBeforeDelete($this->model);
+        $this->model->delete();
+        $this->result['data'] = $this->model;
         $this->result['messages'] = __("Data deleted successfully");
         return $this->result;
     }
 
-    public function setUpdatedModel($id): void {
-        $this->updatedModel = $this->model::find($id);
-    }
-
-    public function setDeletedModel($id): void {
-        $this->deletedModel = $this->model::find($id);
-    }
-
     protected function getTableName(): string {
-        if($this->model instanceof Model){
-            return $this->model->getTable();
-        } else {
-            $obj = new $this->model();
-            return $obj->getTable();
-        }
+        return $this->model->getTable();
     }
 
     protected function appendCreatedBy($record): array {
@@ -181,6 +183,42 @@ class BaseServiceEloquent implements IServiceEloquent
             'name' => $this->auth::user()->token->name,
             'email' => $this->auth::user()->token->email,
         ];
+    }
+
+    /**
+     * @param $id
+     * @param null $field
+     * @return Model
+     */
+    public function find($id, $field=null): Model
+    {
+        if($field === null) {
+            $isUuid = preg_match('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $id);
+            if($isUuid) {
+                return $this->model::where('uuid', $id)->first();
+            } else {
+                return $this->model::find($id);
+            }
+        }
+        return $this->model::where($field, $id)->first();
+    }
+
+    public function validateModel($id, $field=null): array
+    {
+        $_model = $this->find($id, $field);
+        if(empty($_model)){
+            $this->result['status'] = false;
+            $this->result['messages'] = __("Data not found");
+            $this->result['data'] = null;
+            $this->result['httpCode'] = 404;
+            return $this->result;
+        }
+
+        $this->result['status'] = true;
+        $this->result['messages'] = __("Data found");
+        $this->result['data'] = $_model;
+        $this->result['httpCode'] = 404;
+        return $this->result;
     }
 
     public function onBeforeCreate(array $data): array
@@ -221,6 +259,11 @@ class BaseServiceEloquent implements IServiceEloquent
     public function getDefaultAllowedSort(): array
     {
         return (new $this->model())->getFillable();
+    }
+
+    public function getDefaultWhere($query): QueryBuilder
+    {
+        return $query;
     }
 
     public function getRequest(): string
