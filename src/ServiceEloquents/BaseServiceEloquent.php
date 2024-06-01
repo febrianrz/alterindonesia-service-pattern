@@ -4,13 +4,14 @@ namespace Alterindonesia\ServicePattern\ServiceEloquents;
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
-use \Illuminate\Database\Eloquent\Builder;
+use \Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use \Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Schema;
-use Spatie\QueryBuilder\QueryBuilder;
+use Spatie\QueryBuilder\QueryBuilder as SpatieQueryBuilder;
 
 class BaseServiceEloquent implements IServiceEloquent
 {
-    protected Model $model;
+    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder $model;
 
     protected string $resource;
     protected string $request;
