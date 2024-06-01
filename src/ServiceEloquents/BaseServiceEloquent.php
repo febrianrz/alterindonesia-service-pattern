@@ -147,7 +147,15 @@ class BaseServiceEloquent implements IServiceEloquent
         if(!$result['status']){
             return $result;
         }
-        $this->model = $this->onBeforeDelete($this->model);
+        $result = $this->onBeforeDelete($this->model);
+        if(!$result['status']){
+            return [
+                'status' => false,
+                'messages' => __("Failed to delete data"),
+                'httpCode' => 400
+            ];
+        }
+        $this->model = $result['data'];
         $this->model->delete();
         $this->onAfterDelete($this->model);
         $this->result['data'] = $this->model;
@@ -228,7 +236,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $data;
     }
 
-    public function onAfterCreate(Model $model, array $data)
+    public function onAfterCreate(Model $model, array $data): void
     {
         // TODO: Implement onAfterCreate() method.
     }
@@ -246,6 +254,7 @@ class BaseServiceEloquent implements IServiceEloquent
     public function onBeforeDelete(Model $model): array
     {
         return [
+            'status' => true,
             'data' => $model
         ];
     }
