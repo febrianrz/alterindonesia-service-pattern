@@ -4,8 +4,9 @@ namespace Alterindonesia\ServicePattern\ServiceEloquents;
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
-use \Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use \Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Spatie\QueryBuilder\QueryBuilder as SpatieQueryBuilder;
 
@@ -51,7 +52,7 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function index() : array
     {
-        $query = QueryBuilder::for($this->model)
+        $query = SpatieQueryBuilder::for($this->model)
             ->allowedFilters($this->getDefaultAllowedFilters())
             ->allowedSorts($this->getDefaultAllowedSort());
 
@@ -64,11 +65,14 @@ class BaseServiceEloquent implements IServiceEloquent
 
     /**
      * @param $query
-     * @return QueryBuilder
+     * @return array
      */
-    public function onBeforeList($query): QueryBuilder
+    public function onBeforeList($query): array
     {
-        return $query;
+        return [
+            'status' => true,
+            'data' => $query
+        ];
     }
 
     /**
@@ -89,7 +93,6 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function store(FormRequest|array $request) : array
     {
-        $payload = [];
         if(is_array($request)){
             $payload = $request;
         } else {
@@ -165,9 +168,9 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected function getCreatedBy(): array {
         return [
-            'id' => $this->auth::id(),
-            'name' => $this->auth::user()->token->name,
-            'email' => $this->auth::user()->token->email,
+            'id' => Auth::user()->token->sub,
+            'name' => Auth::user()->token->name,
+            'email' => Auth::user()->token->email,
         ];
     }
 
@@ -180,9 +183,9 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected function getUpdatedBy(): array {
         return [
-            'id' => $this->auth::id(),
-            'name' => $this->auth::user()->token->name,
-            'email' => $this->auth::user()->token->email,
+            'id' => Auth::user()->token->sub,
+            'name' => Auth::user()->token->name,
+            'email' => Auth::user()->token->email,
         ];
     }
 
@@ -207,14 +210,12 @@ class BaseServiceEloquent implements IServiceEloquent
     public function validateModel($id, $field=null): array
     {
         $_model = $this->find($id, $field);
-        if(empty($_model)){
+        if(!$_model){
             $this->result['status'] = false;
             $this->result['messages'] = __("Data not found");
-            $this->result['data'] = null;
             $this->result['httpCode'] = 404;
             return $this->result;
         }
-
         $this->result['status'] = true;
         $this->result['messages'] = __("Data found");
         $this->result['data'] = $_model;
@@ -242,9 +243,11 @@ class BaseServiceEloquent implements IServiceEloquent
 
     }
 
-    public function onBeforeDelete(Model $model): Model|Builder
+    public function onBeforeDelete(Model $model): array
     {
-        return $model;
+        return [
+            'data' => $model
+        ];
     }
 
     public function onAfterDelete(Model $model): void
