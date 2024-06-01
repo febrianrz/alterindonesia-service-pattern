@@ -200,9 +200,9 @@ class BaseServiceEloquent implements IServiceEloquent
     /**
      * @param $id
      * @param null $field
-     * @return Model
+     * @return Model|null
      */
-    public function find($id, $field=null): Model
+    public function find($id, $field=null): Model|null
     {
         if($field === null) {
             $isUuid = preg_match('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $id);
