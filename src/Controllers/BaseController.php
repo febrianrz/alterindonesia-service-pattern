@@ -2,12 +2,12 @@
 namespace Alterindonesia\ServicePattern\Controllers;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use function PHPUnit\Framework\isInstanceOf;
 
 class BaseController
 {
@@ -22,7 +22,7 @@ class BaseController
         $this->service = $service;
     }
 
-    protected function response($result): \Illuminate\Http\JsonResponse | ResourceCollection
+    protected function response($result): JsonResponse | ResourceCollection
     {
         if($result['httpCode'] >= 200 && $result['httpCode'] < 300) {
             return $this->responseSuccess($result);
@@ -30,9 +30,8 @@ class BaseController
         return $this->responseError($result);
     }
 
-    protected function responseSuccess($result) : \Illuminate\Http\JsonResponse | ResourceCollection
+    protected function responseSuccess($result) : JsonResponse | ResourceCollection
     {
-        $responseData = null;
         if(isset($result['resource'])) {
             if($result['data'] instanceof Collection || $result['data'] instanceof LengthAwarePaginator) {
                 return $result['resource']::collection($result['data']);
@@ -51,7 +50,7 @@ class BaseController
         return response()->json($responseData, $result['httpCode']);
     }
 
-    protected function responseError($result) : \Illuminate\Http\JsonResponse
+    protected function responseError($result) : JsonResponse
     {
         return response()->json([
             'message' => $result['messages'] ?? 'Not Found',
@@ -59,20 +58,20 @@ class BaseController
         ], $result['httpCode']);
     }
 
-    public function index() : \Illuminate\Http\JsonResponse | ResourceCollection
+    public function index() : JsonResponse | ResourceCollection
     {
         $result = $this->service->index();
         return $this->response($result);
     }
 
-    public function store(Request $request) : \Illuminate\Http\JsonResponse | ResourceCollection
+    public function store(FormRequest|Request|array $request) : JsonResponse | ResourceCollection
     {
         $this->request = $this->request ?? $this->service->getRequest();
         $result = $this->service->store(app($this->request) ?? $request);
         return $this->response($result);
     }
 
-    public function update($id, FormRequest $request) : \Illuminate\Http\JsonResponse | ResourceCollection
+    public function update($id, FormRequest $request) : JsonResponse | ResourceCollection
     {
         $this->request = $this->request ?? $this->service->getRequest();
         $payload = $request->all();
@@ -83,13 +82,13 @@ class BaseController
         return $this->response($result);
     }
 
-    public function show($id) : \Illuminate\Http\JsonResponse | ResourceCollection
+    public function show($id) : JsonResponse | ResourceCollection
     {
         $result = $this->service->show($id);
         return $this->response($result);
     }
 
-    public function destroy($id) : \Illuminate\Http\JsonResponse | ResourceCollection
+    public function destroy($id) : JsonResponse | ResourceCollection
     {
         $result = $this->service->destroy($id, null);
         return $this->response($result);
