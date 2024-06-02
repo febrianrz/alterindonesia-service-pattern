@@ -82,7 +82,9 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function show($id, $field=null) : array
     {
-        $this->result['data'] = $this->find($id, $field);
+        $this->model = $this->find($id, $field);
+        $this->model = $this->onBeforeShow($this->model);
+        $this->result['data'] = $this->model;
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
     }
@@ -231,6 +233,11 @@ class BaseServiceEloquent implements IServiceEloquent
         return $this->result;
     }
 
+    public function onBeforeShow($query): Model|SpatieQueryBuilder|QueryBuilder|EloquentBuilder
+    {
+        return $query;
+    }
+
     public function onBeforeCreate(array $data): array
     {
         return $data;
@@ -274,7 +281,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return (new $this->model())->getFillable();
     }
 
-    public function getDefaultWhere($query): QueryBuilder
+    public function getDefaultWhere($query): QueryBuilder|SpatieQueryBuilder|EloquentBuilder
     {
         return $query;
     }

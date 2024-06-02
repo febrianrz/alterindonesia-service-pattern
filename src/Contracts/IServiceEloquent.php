@@ -4,6 +4,9 @@ namespace Alterindonesia\ServicePattern\Contracts;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
+use Spatie\QueryBuilder\QueryBuilder as SpatieQueryBuilder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 interface IServiceEloquent {
     public function index() : array;
@@ -15,7 +18,8 @@ interface IServiceEloquent {
     public function getUpdatedData(array $data): array;
 
     // hook
-    public function onBeforeList($query) : array;
+    public function onBeforeShow($query) : Model|SpatieQueryBuilder|QueryBuilder|EloquentBuilder;
+    public function onBeforeList($query) : Model|SpatieQueryBuilder|QueryBuilder|EloquentBuilder;
     public function onBeforeCreate(array $data) : array;
     public function onAfterCreate(Model $model, array $data) : void;
     public function onBeforeUpdate(array $data) : array;
