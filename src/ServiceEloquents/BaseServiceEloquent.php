@@ -65,14 +65,11 @@ class BaseServiceEloquent implements IServiceEloquent
 
     /**
      * @param $query
-     * @return array
+     * @return Model|SpatieQueryBuilder|QueryBuilder|EloquentBuilder
      */
-    public function onBeforeList($query): array
+    public function onBeforeList($query): Model|SpatieQueryBuilder|QueryBuilder|EloquentBuilder
     {
-        return [
-            'status' => true,
-            'data' => $query
-        ];
+        return $query;
     }
 
     /**
