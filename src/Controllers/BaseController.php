@@ -64,14 +64,14 @@ class BaseController
         return $this->response($result);
     }
 
-    public function store(FormRequest|Request|array $request) : JsonResponse | ResourceCollection
+    public function store(FormRequest|Request $request) : JsonResponse | ResourceCollection
     {
         $this->request = $this->request ?? $this->service->getRequest();
         $result = $this->service->store(app($this->request) ?? $request);
         return $this->response($result);
     }
 
-    public function update($id, FormRequest $request) : JsonResponse | ResourceCollection
+    public function update($id, FormRequest|Request $request) : JsonResponse | ResourceCollection
     {
         $this->request = $this->request ?? $this->service->getRequest();
         $payload = $request->all();
