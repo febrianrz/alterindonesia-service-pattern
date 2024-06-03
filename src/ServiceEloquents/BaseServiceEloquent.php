@@ -2,21 +2,24 @@
 namespace Alterindonesia\ServicePattern\ServiceEloquents;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Http\FormRequest;
+use Alterindonesia\ServicePattern\Controllers\AnnonymousResource;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Spatie\QueryBuilder\QueryBuilder as SpatieQueryBuilder;
 
 class BaseServiceEloquent implements IServiceEloquent
 {
+    protected bool $createdBy = true;
+    protected bool $updatedBy = true;
+
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder $model;
-
-    protected string $resource;
-    protected string $request;
-
+    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder $originalModel;
+    public JsonResource $resource;
     protected array $result = [
         'model' => null,
         'resource' => null,
@@ -28,23 +31,27 @@ class BaseServiceEloquent implements IServiceEloquent
     /**
      * BaseServiceEloquent constructor.
      * @param Model $model
-     * @param string|null $resource
-     * @param string|null $request
-     * @param mixed ...$args
+     * @param JsonResource|null $resource
      */
     public function __construct(
         Model $model,
-        string $resource=null,
-        string $request=null,
-        array ...$args
+        JsonResource $resource=null
     ) {
-        $this->model = $model;
-        $this->resource = $resource;
-        $this->request = $request;
-
+        $router = app(Router::class);
+        if($router->current()->getActionMethod() === "store"){
+            $this->model = new $model();
+        } else if($router->current()->getActionMethod() === "show" && $router->current()->parameter('id') !== null){
+            $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+        } else if($router->current()->getActionMethod() === "update" && $router->current()->parameter('id') !== null){
+            $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+        } else if($router->current()->getActionMethod() === "destroy" && $router->current()->parameter('id') !== null){
+            $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+        } else {
+            $this->model = $model;
+        }
+        $this->originalModel = $model;
         $this->result['model'] = $model;
-        $this->result['resource'] = $resource;
-
+        $this->result['resource'] = $resource ?? null;
     }
 
     /**
@@ -52,7 +59,7 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function index() : array
     {
-        $query = SpatieQueryBuilder::for($this->model)
+        $query = SpatieQueryBuilder::for($this->model::query())
             ->allowedFilters($this->getDefaultAllowedFilters())
             ->allowedSorts($this->getDefaultAllowedSort());
 
@@ -79,29 +86,28 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function show($id, $field=null) : array
     {
-        $this->model = $this->find($id, $field);
+        $first = $this->model->first();
+        if (!$first) {
+            $this->result['status'] = false;
+            $this->result['messages'] = __("Data not found");
+            $this->result['httpCode'] = 404;
+            return $this->result;
+        }
         $this->model = $this->onBeforeShow($this->model);
-        $this->result['data'] = $this->model;
+        $this->result['data'] = $this->model->first();
         $this->result['messages'] = __("Data retrieved successfully");
         return $this->result;
     }
 
     /**
-     * @param FormRequest|array $request
+     * @param array $data
      * @return array
      */
-    public function store(FormRequest|array $request) : array
+    public function store(array $data) : array
     {
-        if(is_array($request)){
-            $payload = $request;
-        } else {
-            $payload = $request->validated();
-        }
-
-        $record = $this->appendCreatedBy($this->getCreatedData($payload));
-        $record = $this->onBeforeCreate($record);
+        $record = $this->appendCreatedBy($data);
         $this->result['data'] = $this->model::create($record);
-        $this->onAfterCreate($this->result['data'], $record);
+        $this->onAfterCreate($this->model, $record);
         $this->result['messages'] = __("Data created successfully");
         $this->result['httpCode'] = 201;
         return $this->result;
@@ -109,20 +115,22 @@ class BaseServiceEloquent implements IServiceEloquent
 
     /**
      * @param $id
-     * @param  FormRequest|array  $request
+     * @param  array $data
      * @return array
      */
-    public function update($id, FormRequest|array $request) : array
+    public function update($id, array $data) : array
     {
-        $result = $this->validateModel($id);
-        if(!$result['status']){
-            return $result;
+        $first = $this->model->first();
+        if (!$first) {
+            $this->result['status'] = false;
+            $this->result['messages'] = __("Data not found");
+            $this->result['httpCode'] = 404;
+            return $this->result;
         }
-        $data = is_array($request) ? $request : $request->validated();
-        $record = $this->appendUpdatedBy($this->getUpdatedData($data));
-        $record = $this->onBeforeUpdate($record);
-        $this->onAfterUpdate($this->model, $record);
-        $this->result['data'] = $this->model;
+        $record = $this->appendUpdatedBy($data);
+        $this->model->update($record);
+        $this->onAfterUpdate($this->model->first(), $record);
+        $this->result['data'] = $this->model->first();
         $this->result['messages'] = __("Data updated successfully");
         $this->result['httpCode'] = 200;
         return $this->result;
@@ -140,34 +148,28 @@ class BaseServiceEloquent implements IServiceEloquent
         return $data;
     }
 
-    public function destroy($id,$field=null) : array
+    public function destroy($id) : array
     {
-        $result = $this->validateModel($id, $field);
-        if(!$result['status']){
-            return $result;
+        $first = $this->model->first();
+        if (!$first) {
+            $this->result['status'] = false;
+            $this->result['messages'] = __("Data not found");
+            $this->result['httpCode'] = 404;
+            return $this->result;
         }
-        $result = $this->onBeforeDelete($this->model);
-        if(!$result['status']){
-            return [
-                'status' => false,
-                'messages' => __("Failed to delete data"),
-                'httpCode' => 400
-            ];
-        }
-        $this->model = $result['data'];
         $this->model->delete();
-        $this->onAfterDelete($this->model);
-        $this->result['data'] = $this->model;
+        $this->onAfterDelete($first);
+        $this->result['data'] = [];
         $this->result['messages'] = __("Data deleted successfully");
         return $this->result;
     }
 
     protected function getTableName(): string {
-        return $this->model->getTable();
+        return $this->originalModel->getTable();
     }
 
     protected function appendCreatedBy($record): array {
-        if(Schema::hasColumn($this->getTableName(), 'created_by')){
+        if(Schema::hasColumn($this->getTableName(), 'created_by') && $this->createdBy){
             $record['created_by'] = json_encode($this->getCreatedBy());
         }
         return $record;
@@ -175,14 +177,14 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected function getCreatedBy(): array {
         return [
-            'id' => Auth::user()->token->sub,
-            'name' => Auth::user()->token->name,
-            'email' => Auth::user()->token->email,
+            'id' => $this->getUser()->token->sub,
+            'name' => $this->getUser()->token->name,
+            'email' => $this->getUser()->token->email,
         ];
     }
 
     public function appendUpdatedBy($record): array {
-        if(Schema::hasColumn($this->getTableName(), 'updated_by')){
+        if(Schema::hasColumn($this->getTableName(), 'updated_by') && $this->updatedBy){
             $record['updated_by'] = json_encode($this->getUpdatedBy());
         }
         return $record;
@@ -190,9 +192,9 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected function getUpdatedBy(): array {
         return [
-            'id' => Auth::user()->token->sub,
-            'name' => Auth::user()->token->name,
-            'email' => Auth::user()->token->email,
+            'id' => $this->getUser()->token->sub,
+            'name' => $this->getUser()->token->name,
+            'email' => $this->getUser()->token->email,
         ];
     }
 
@@ -228,6 +230,11 @@ class BaseServiceEloquent implements IServiceEloquent
         $this->result['data'] = $_model;
         $this->result['httpCode'] = 404;
         return $this->result;
+    }
+
+    public function getUser(): object
+    {
+        return Auth::user();
     }
 
     public function onBeforeShow($query): Model|SpatieQueryBuilder|QueryBuilder|EloquentBuilder

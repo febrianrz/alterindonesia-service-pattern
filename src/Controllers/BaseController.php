@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -14,12 +15,16 @@ class BaseController
     protected IServiceEloquent $service;
 
     protected string $request;
+    protected string $response;
 
-    protected string $resource;
-
-    public function __construct(IServiceEloquent $service)
-    {
+    public function __construct(
+        IServiceEloquent $service,
+        string $request = AnnonymousFormRequest::class,
+        string $response = AnnonymousResource::class
+    ) {
         $this->service = $service;
+        $this->request = $request;
+        $this->response = $response;
     }
 
     protected function response($result): JsonResponse | ResourceCollection
@@ -42,12 +47,17 @@ class BaseController
                 ];
             }
             return response()->json($responseData, $result['httpCode']);
+        } else {
+            if($result['data'] instanceof Collection || $result['data'] instanceof LengthAwarePaginator) {
+                return $this->response::collection($result['data']);
+            } else {
+                $responseData = [
+                    'message' => $result['messages'],
+                    'data' => new $this->response($result['data'])
+                ];
+            }
+            return response()->json($responseData, $result['httpCode']);
         }
-        $responseData = [
-            'message' => $result['messages'],
-            'data' => $result['data']
-        ];
-        return response()->json($responseData, $result['httpCode']);
     }
 
     protected function responseError($result) : JsonResponse
@@ -64,21 +74,32 @@ class BaseController
         return $this->response($result);
     }
 
-    public function store(FormRequest|Request $request) : JsonResponse | ResourceCollection
+    public function store(Request $request) : JsonResponse | ResourceCollection
     {
-        $this->request = $this->request ?? $this->service->getRequest();
-        $result = $this->service->store(app($this->request) ?? $request);
+        $_request = app($this->request);
+        if(!$_request->authorize()){
+            return response()->json([
+                'message' => 'Unauthorized',
+                'data' => []
+            ], 401);
+        }
+        $request->validate($_request->rules());
+
+        $result = $this->service->store($_request->validated());
         return $this->response($result);
     }
 
-    public function update($id, FormRequest|Request $request) : JsonResponse | ResourceCollection
+    public function update($id, Request $request) : JsonResponse | ResourceCollection
     {
-        $this->request = $this->request ?? $this->service->getRequest();
-        $payload = $request->all();
-        if($this->request) {
-            $payload = app($this->request)->validated();
+        $_request = app($this->request);
+        if(!$_request->authorize()){
+            return response()->json([
+                'message' => 'Unauthorized',
+                'data' => []
+            ], 401);
         }
-        $result = $this->service->update($id, $payload);
+        $request->validate($_request->rules());
+        $result = $this->service->update($id, $_request->validated());
         return $this->response($result);
     }
 

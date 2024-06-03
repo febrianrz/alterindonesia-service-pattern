@@ -11,9 +11,9 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 interface IServiceEloquent {
     public function index() : array;
     public function show($id) : array;
-    public function store(FormRequest $request) : array;
-    public function update($id, FormRequest $request) : array;
-    public function destroy($id, string $field) : array;
+    public function store(array $data) : array;
+    public function update($id, array $data) : array;
+    public function destroy($id) : array;
     public function getCreatedData(array $data): array;
     public function getUpdatedData(array $data): array;
 
