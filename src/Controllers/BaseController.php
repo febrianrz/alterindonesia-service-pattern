@@ -3,10 +3,8 @@ namespace Alterindonesia\ServicePattern\Controllers;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
