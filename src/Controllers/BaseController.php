@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Validator;
 
 class BaseController
 {
@@ -44,18 +45,17 @@ class BaseController
                     'data' => new $result['resource']($result['data'])
                 ];
             }
-            return response()->json($responseData, $result['httpCode']);
         } else {
             if($result['data'] instanceof Collection || $result['data'] instanceof LengthAwarePaginator) {
-                return $this->response::collection($result['data']);
+                return app($this->response)::collection($result['data']);
             } else {
                 $responseData = [
                     'message' => $result['messages'],
                     'data' => new $this->response($result['data'])
                 ];
             }
-            return response()->json($responseData, $result['httpCode']);
         }
+        return response()->json($responseData, $result['httpCode']);
     }
 
     protected function responseError($result) : JsonResponse
@@ -74,30 +74,41 @@ class BaseController
 
     public function store(Request $request) : JsonResponse | ResourceCollection
     {
-        $_request = app($this->request);
+        $_request = new $this->request();
         if(!$_request->authorize()){
             return response()->json([
                 'message' => 'Unauthorized',
                 'data' => []
             ], 401);
         }
-        $request->validate($_request->rules());
-
-        $result = $this->service->store($_request->validated());
+        $validator = Validator::make($request->all(), $_request->rules());
+        if($validator->fails()){
+            return response()->json([
+                'message' => $validator->errors(),
+                'data' => []
+            ], 400);
+        }
+        $result = $this->service->store($validator->validated());
         return $this->response($result);
     }
 
     public function update($id, Request $request) : JsonResponse | ResourceCollection
     {
-        $_request = app($this->request);
+        $_request = new $this->request();
         if(!$_request->authorize()){
             return response()->json([
                 'message' => 'Unauthorized',
                 'data' => []
             ], 401);
         }
-        $request->validate($_request->rules());
-        $result = $this->service->update($id, $_request->validated());
+        $validator = Validator::make($request->all(), $_request->rules());
+        if($validator->fails()){
+            return response()->json([
+                'message' => $validator->errors(),
+                'data' => []
+            ], 400);
+        }
+        $result = $this->service->update($id, $validator->validated());
         return $this->response($result);
     }
 
@@ -109,7 +120,7 @@ class BaseController
 
     public function destroy($id) : JsonResponse | ResourceCollection
     {
-        $result = $this->service->destroy($id, null);
+        $result = $this->service->destroy($id);
         return $this->response($result);
     }
 }
