@@ -47,7 +47,7 @@ class BaseController
             }
         } else {
             if($result['data'] instanceof Collection || $result['data'] instanceof LengthAwarePaginator) {
-                return app($this->response)::collection($result['data']);
+                return $this->response::collection($result['data']);
             } else {
                 $responseData = [
                     'message' => $result['messages'],
