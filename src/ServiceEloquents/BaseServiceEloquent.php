@@ -36,21 +36,31 @@ class BaseServiceEloquent implements IServiceEloquent
         Model $model,
         JsonResource $resource=null
     ) {
-        $router = app(Router::class);
-        if($router->current()->getActionMethod() === "store"){
-            $this->model = new $model();
-        } else if($router->current()->getActionMethod() === "show" && $router->current()->parameter('id') !== null){
-            $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
-        } else if($router->current()->getActionMethod() === "update" && $router->current()->parameter('id') !== null){
-            $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
-        } else if($router->current()->getActionMethod() === "destroy" && $router->current()->parameter('id') !== null){
-            $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
-        } else {
-            $this->model = $model;
-        }
+        $this->initializeModel($model);
         $this->originalModel = $model;
         $this->result['model'] = $model;
         $this->result['resource'] = $resource ?? null;
+    }
+
+    public function initializeModel($model):void
+    {
+        $router = app(Router::class);
+        if($router->current()){
+            if($router->current()->getActionMethod() === "store"){
+                $this->model = new $model();
+            } else if($router->current()->getActionMethod() === "show" && $router->current()->parameter('id') !== null){
+                $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+            } else if($router->current()->getActionMethod() === "update" && $router->current()->parameter('id') !== null){
+                $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+            } else if($router->current()->getActionMethod() === "destroy" && $router->current()->parameter('id') !== null){
+                $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+            } else {
+                $this->model = $model;
+            };
+        } else {
+            $this->model = new $model;
+        }
+
     }
 
     /**
