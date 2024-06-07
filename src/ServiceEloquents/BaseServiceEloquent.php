@@ -16,8 +16,8 @@ class BaseServiceEloquent implements IServiceEloquent
     protected bool $createdBy = true;
     protected bool $updatedBy = true;
 
-    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder $model;
-    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder $originalModel;
+    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $model;
+    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $originalModel;
     public JsonResource $resource;
     protected array $result = [
         'model' => null,
