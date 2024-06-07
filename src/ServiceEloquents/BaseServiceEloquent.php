@@ -115,7 +115,8 @@ class BaseServiceEloquent implements IServiceEloquent
     public function store(array $data) : array
     {
         $record = $this->appendCreatedBy($data);
-        $this->result['data'] = $this->model::create($record);
+        $this->model = $this->model::create($record);
+        $this->result['data'] = $this->model;
         $this->onAfterCreate($this->model, $record);
         $this->result['messages'] = __("Data created successfully");
         $this->result['httpCode'] = 201;
