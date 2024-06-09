@@ -18,7 +18,7 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $model;
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $originalModel;
-    public JsonResource $resource;
+    public string|JsonResource $resource;
     protected array $result = [
         'model' => null,
         'resource' => null,
@@ -55,12 +55,11 @@ class BaseServiceEloquent implements IServiceEloquent
             } else if($router->current()->getActionMethod() === "destroy" && $router->current()->parameter('id') !== null){
                 $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
             } else {
-                $this->model = $model;
-            };
+                $this->model = $model::query();
+            }
         } else {
             $this->model = new $model;
         }
-
     }
 
     /**
@@ -68,11 +67,10 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function index() : array
     {
-        $query = SpatieQueryBuilder::for($this->model::query())
+        $query = SpatieQueryBuilder::for($this->model)
             ->allowedFilters($this->getDefaultAllowedFilters())
             ->allowedSorts($this->getDefaultAllowedSort());
 
-        $query = $this->onBeforeList($query);
         $query = $this->getDefaultWhere($query);
         $this->result['data'] = $query->paginate(request()->input('perPage') ?? 20);
         $this->result['messages'] = __("Data retrieved successfully");
@@ -287,12 +285,12 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function getDefaultAllowedFilters(): array
     {
-        return (new $this->model())->getFillable();
+        return (new $this->originalModel())->getFillable();
     }
 
     public function getDefaultAllowedSort(): array
     {
-        return (new $this->model())->getFillable();
+        return (new $this->originalModel())->getFillable();
     }
 
     public function getDefaultWhere($query): QueryBuilder|SpatieQueryBuilder|EloquentBuilder
@@ -300,12 +298,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $query;
     }
 
-    public function getRequest(): string
-    {
-        return $this->request;
-    }
-
-    public function getResource(): string
+    public function getResource(): string|JsonResource
     {
         return $this->resource;
     }
