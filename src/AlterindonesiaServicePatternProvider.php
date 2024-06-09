@@ -2,6 +2,7 @@
 
 namespace Alterindonesia\ServicePattern;
 
+use Alterindonesia\ServicePattern\Console\CreateServiceCommand;
 use Illuminate\Support\ServiceProvider;
 
 class AlterindonesiaServicePatternProvider extends ServiceProvider
@@ -19,6 +20,8 @@ class AlterindonesiaServicePatternProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->commands([
+            CreateServiceCommand::class
+        ]);
     }
 }
