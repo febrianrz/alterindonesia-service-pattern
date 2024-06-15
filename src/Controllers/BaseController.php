@@ -75,6 +75,7 @@ class BaseController
     public function store(Request $request) : JsonResponse | ResourceCollection
     {
         $_request = new $this->request();
+        $_request->setMethod('POST');
         if(!$_request->authorize()){
             return response()->json([
                 'message' => 'Unauthorized',
@@ -95,6 +96,7 @@ class BaseController
     public function update($id, Request $request) : JsonResponse | ResourceCollection
     {
         $_request = new $this->request();
+        $_request->setMethod('PUT');
         if(!$_request->authorize()){
             return response()->json([
                 'message' => 'Unauthorized',
