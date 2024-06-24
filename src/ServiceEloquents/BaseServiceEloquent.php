@@ -158,16 +158,16 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function destroy($id) : array
     {
-        $first = $this->model->first();
-        if (!$first) {
+        $this->model = $this->find($id);
+        if (!$this->model) {
             $this->result['status'] = false;
             $this->result['messages'] = __("Data not found");
             $this->result['httpCode'] = 404;
             return $this->result;
         }
         $this->model->delete();
-        $this->onAfterDelete($first);
-        $this->result['data'] = [];
+        $this->onAfterDelete($this->model);
+        $this->result['data'] = $this->model;
         $this->result['messages'] = __("Data deleted successfully");
         return $this->result;
     }
@@ -216,12 +216,12 @@ class BaseServiceEloquent implements IServiceEloquent
         if($field === null) {
             $isUuid = preg_match('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $id);
             if($isUuid) {
-                return $this->model::where('uuid', $id)->first();
+                return $this->originalModel::where('uuid', $id)->first();
             } else {
-                return $this->model::find($id);
+                return $this->originalModel::find($id);
             }
         }
-        return $this->model::where($field, $id)->first();
+        return $this->originalModel::where($field, $id)->first();
     }
 
     public function validateModel($id, $field=null): array
