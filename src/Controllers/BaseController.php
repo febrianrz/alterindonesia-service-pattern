@@ -122,6 +122,14 @@ class BaseController
 
     public function destroy($id) : JsonResponse | ResourceCollection
     {
+        $_request = new $this->request();
+        $_request->setMethod('DELETE');
+        if(!$_request->authorize()){
+            return response()->json([
+                'message' => 'Unauthorized',
+                'data' => []
+            ], 401);
+        }
         $result = $this->service->destroy($id);
         return $this->response($result);
     }
