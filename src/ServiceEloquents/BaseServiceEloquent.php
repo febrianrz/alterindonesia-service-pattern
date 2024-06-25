@@ -20,6 +20,7 @@ class BaseServiceEloquent implements IServiceEloquent
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $originalModel;
     public string|JsonResource $resource;
     protected array $result = [
+        'status' => true,
         'model' => null,
         'resource' => null,
         'data' => [],

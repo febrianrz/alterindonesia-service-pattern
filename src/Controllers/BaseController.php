@@ -41,7 +41,7 @@ class BaseController
                 return $result['resource']::collection($result['data']);
             } else {
                 $responseData = [
-                    'message' => $result['messages'],
+                    'message' => $result['messages'] ?? $result['message'] ?? 'Success',
                     'data' => new $result['resource']($result['data'])
                 ];
             }
@@ -50,7 +50,7 @@ class BaseController
                 return $this->response::collection($result['data']);
             } else {
                 $responseData = [
-                    'message' => $result['messages'],
+                    'message' => $result['messages'] ?? $result['message'] ?? 'Success',
                     'data' => new $this->response($result['data'])
                 ];
             }
@@ -61,7 +61,7 @@ class BaseController
     protected function responseError($result) : JsonResponse
     {
         return response()->json([
-            'message' => $result['messages'] ?? 'Not Found',
+            'message' => $result['messages'] ?? $result['message'] ?? 'Not Found',
             'data' => $result['data']
         ], $result['httpCode']);
     }
