@@ -4,7 +4,7 @@ namespace Alterindonesia\ServicePattern;
 
 use Alterindonesia\ServicePattern\Console\CreateServiceCommand;
 use Alterindonesia\ServicePattern\Events\QueueDispatcherEvent;
-use App\ServicePackage\Listeners\QueueDispatcherListener;
+use Alterindonesia\ServicePattern\Listeners\QueueDispatcherListener;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
