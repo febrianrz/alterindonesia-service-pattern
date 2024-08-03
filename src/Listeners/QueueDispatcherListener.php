@@ -1,6 +1,6 @@
 <?php
 
-namespace App\ServicePackage\Listeners;
+namespace Alterindonesia\ServicePattern\Listeners;
 
 use Alterindonesia\ServicePattern\Events\QueueDispatcherEvent;
 use Illuminate\Support\Facades\Queue;
