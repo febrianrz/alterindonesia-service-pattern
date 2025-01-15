@@ -3,6 +3,7 @@ namespace Alterindonesia\ServicePattern\ServiceEloquents;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
 use Alterindonesia\ServicePattern\Libraries\ServiceResponse;
+use Alterindonesia\ServicePattern\Resources\AnonymousResource;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -14,15 +15,17 @@ use Spatie\QueryBuilder\QueryBuilder as SpatieQueryBuilder;
 
 class BaseServiceEloquent implements IServiceEloquent
 {
+    protected ?string $model;
+    protected ?string $resource;
+    protected ?ServiceResponse $serviceResponse;
+
     protected bool $createdBy = true;
     protected bool $updatedBy = true;
 
-    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $model;
+    protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $eloquentModel;
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $originalModel;
 
-    public string|JsonResource $resource;
-
-    public ServiceResponse $serviceResponse;
+    public string|JsonResource $responseResource;
 
     protected array $result = [
         'status' => true,
@@ -33,23 +36,16 @@ class BaseServiceEloquent implements IServiceEloquent
         'httpCode' => 200
     ];
 
-    /**
-     * BaseServiceEloquent constructor.
-     * @param  Model  $model
-     * @param  JsonResource  $resource
-     * @param  ServiceResponse  $serviceResponse
-     */
-    public function __construct(
-        Model $model,
-        JsonResource $resource,
-        ServiceResponse $serviceResponse
-    ) {
-        $this->initializeModel($model);
-        $this->originalModel = $model;
-        $this->result['model'] = $model;
-        $this->result['resource'] = $resource;
-        $this->serviceResponse = $serviceResponse;
-        $this->resource = $resource;
+
+    public function __construct() {
+        $this->initializeModel($this->model);
+        $this->originalModel = $this->eloquentModel;
+        $this->serviceResponse = app(ServiceResponse::class);
+        $this->resource = $this->getResource();
+//        $this->result['model'] = $model;
+//        $this->result['resource'] = $resource;
+//        $this->serviceResponse = $serviceResponse;
+//        $this->resource = $resource;
     }
 
     public function initializeModel($model):void
@@ -57,18 +53,18 @@ class BaseServiceEloquent implements IServiceEloquent
         $router = app(Router::class);
         if($router->current()){
             if($router->current()->getActionMethod() === "store"){
-                $this->model = new $model();
+                $this->eloquentModel = new $model();
             } else if($router->current()->getActionMethod() === "show" && $router->current()->parameter('id') !== null){
-                $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+                $this->eloquentModel = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
             } else if($router->current()->getActionMethod() === "update" && $router->current()->parameter('id') !== null){
-                $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+                $this->eloquentModel = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
             } else if($router->current()->getActionMethod() === "destroy" && $router->current()->parameter('id') !== null){
-                $this->model = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
+                $this->eloquentModel = (new $model)->where($router->current()->parameterNames[0] ?? 'id',$router->current()->parameter($router->current()->parameterNames[0]));
             } else {
-                $this->model = $model::query();
+                $this->eloquentModel = $model::query();
             }
         } else {
-            $this->model = new $model;
+            $this->eloquentModel = new $model;
         }
     }
 
@@ -77,7 +73,7 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function index() : array|ServiceResponse
     {
-        $query = SpatieQueryBuilder::for($this->model)
+        $query = SpatieQueryBuilder::for($this->eloquentModel)
             ->allowedFilters($this->getDefaultAllowedFilters())
             ->allowedSorts($this->getDefaultAllowedSort());
 
@@ -107,15 +103,15 @@ class BaseServiceEloquent implements IServiceEloquent
      */
     public function show($id, $field=null) : array|ServiceResponse
     {
-        $first = $this->model->first();
+        $first = $this->eloquentModel->first();
         if (!$first) {
             $this->result['status'] = false;
             $this->result['messages'] = __("Data not found");
             $this->result['httpCode'] = 404;
             return $this->result;
         }
-        $this->model = $this->onBeforeShow($this->model);
-        $this->result['data'] = $this->model->first();
+        $this->eloquentModel = $this->onBeforeShow($this->eloquentModel);
+        $this->result['data'] = $this->eloquentModel->first();
         $this->result['messages'] = __("Data retrieved successfully");
         $this->result['httpCode'] = 200;
 
@@ -133,9 +129,9 @@ class BaseServiceEloquent implements IServiceEloquent
     public function store(array $data) : array|ServiceResponse
     {
         $record = $this->appendCreatedBy($data);
-        $this->model = $this->model->create($record);
-        $this->result['data'] = $this->model;
-        $this->onAfterCreate($this->model, $record);
+        $this->model = $this->eloquentModel->create($record);
+        $this->result['data'] = $this->eloquentModel;
+        $this->onAfterCreate($this->eloquentModel, $record);
         $this->result['messages'] = __("Data created successfully");
         $this->result['httpCode'] = 201;
         $this->serviceResponse->setData($this->result['data']);
@@ -160,9 +156,9 @@ class BaseServiceEloquent implements IServiceEloquent
             return $this->result;
         }
         $record = $this->appendUpdatedBy($data);
-        $this->model->update($record);
-        $this->onAfterUpdate($this->model->first(), $record);
-        $this->result['data'] = $this->model->first();
+        $this->eloquentModel->update($record);
+        $this->onAfterUpdate($this->eloquentModel->first(), $record);
+        $this->result['data'] = $this->eloquentModel->first();
         $this->result['messages'] = __("Data updated successfully");
         $this->result['httpCode'] = 200;
         $this->serviceResponse->setData($this->result['data']);
@@ -186,16 +182,16 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function destroy($id) : array|ServiceResponse
     {
-        $this->model = $this->find($id);
-        if (!$this->model) {
+        $this->eloquentModel = $this->find($id);
+        if (!$this->eloquentModel) {
             $this->result['status'] = false;
             $this->result['messages'] = __("Data not found");
             $this->result['httpCode'] = 404;
             return $this->result;
         }
-        $this->model->delete();
-        $this->onAfterDelete($this->model);
-        $this->result['data'] = $this->model;
+        $this->eloquentModel->delete();
+        $this->onAfterDelete($this->eloquentModel);
+        $this->result['data'] = $this->eloquentModel;
         $this->result['messages'] = __("Data deleted successfully");
         $this->serviceResponse->setData($this->result['data']);
         $this->serviceResponse->setMessage($this->result['messages']);
@@ -328,6 +324,6 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function getResource(): string|JsonResource
     {
-        return $this->resource;
+        return $this->resource ?? AnonymousResource::class;
     }
 }
