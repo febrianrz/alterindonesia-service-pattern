@@ -129,14 +129,10 @@ class BaseServiceEloquent implements IServiceEloquent
     public function store(array $data) : array|ServiceResponse
     {
         $record = $this->appendCreatedBy($data);
-        $this->model = $this->eloquentModel->create($record);
-        $this->result['data'] = $this->eloquentModel;
+        $this->eloquentModel = $this->eloquentModel->create($record);
+        $this->serviceResponse->setData($this->eloquentModel);
         $this->onAfterCreate($this->eloquentModel, $record);
-        $this->result['messages'] = __("Data created successfully");
-        $this->result['httpCode'] = 201;
-        $this->serviceResponse->setData($this->result['data']);
-        $this->serviceResponse->setMessage($this->result['messages']);
-        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setHttpCode(201);
         $this->serviceResponse->setResource($this->resource);
         return $this->serviceResponse;
     }
@@ -191,11 +187,8 @@ class BaseServiceEloquent implements IServiceEloquent
         }
         $this->eloquentModel->delete();
         $this->onAfterDelete($this->eloquentModel);
-        $this->result['data'] = $this->eloquentModel;
-        $this->result['messages'] = __("Data deleted successfully");
-        $this->serviceResponse->setData($this->result['data']);
-        $this->serviceResponse->setMessage($this->result['messages']);
-        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setData($this->eloquentModel);
+        $this->serviceResponse->setHttpCode(200);
         $this->serviceResponse->setResource($this->resource);
         return $this->serviceResponse;
     }
