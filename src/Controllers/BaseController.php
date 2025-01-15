@@ -2,7 +2,9 @@
 namespace Alterindonesia\ServicePattern\Controllers;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
+use Alterindonesia\ServicePattern\Libraries\ServiceResponse;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
@@ -36,6 +38,16 @@ class BaseController
 
     protected function responseSuccess($result) : JsonResponse | ResourceCollection
     {
+        if (is_array($result['data'])) {
+            return $this->handleIfResponseIsArray($result);
+        }
+        if($result instanceof ServiceResponse){
+            return $this->handleIfResponseIsServiceResponse($result);
+        }
+    }
+
+    private function handleIfResponseIsArray($result): JsonResponse | ResourceCollection
+    {
         if(isset($result['resource'])) {
             if($result['data'] instanceof Collection || $result['data'] instanceof LengthAwarePaginator) {
                 return $result['resource']::collection($result['data']);
@@ -56,6 +68,52 @@ class BaseController
             }
         }
         return response()->json($responseData, $result['httpCode']);
+    }
+
+    private function handleIfResponseIsServiceResponse(ServiceResponse $response): JsonResponse
+    {
+            $data = $response->getData();
+            $resource = $response->getResource();
+
+            $responseData = [
+                'status' => $response->getHttpCode(),
+                'message' => $response->getMessage(),
+                'data' => null
+            ];
+
+            // Handle empty data
+            if (empty($data)) {
+                return response()->json($responseData, $response->getHttpCode());
+            }
+
+            // Handle if data is Eloquent Model
+            if ($data instanceof Model) {
+                if ($resource !== "") {
+                    $responseData['data'] = new $resource($data);
+                } else {
+                    $responseData['data'] = $data;
+                }
+                return response()->json($responseData, $response->getHttpCode());
+            }
+
+            // Handle collection
+            if ($data->count() > 1) {
+                $responseData['data'] = $resource::collection($data);
+                return response()->json($responseData, $response->getHttpCode());
+            }
+
+            if ($data->isEmpty()) {
+                return response()->json($responseData, $response->getHttpCode());
+            }
+
+            // Handle single item
+            if ($resource !== "") {
+                $responseData['data'] = new $resource($data->first());
+            } else {
+                $responseData['data'] = $data->first();
+            }
+
+            return response()->json($responseData, $response->getHttpCode());
     }
 
     protected function responseError($result) : JsonResponse
