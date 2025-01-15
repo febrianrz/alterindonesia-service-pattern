@@ -2,6 +2,7 @@
 namespace Alterindonesia\ServicePattern\ServiceEloquents;
 
 use Alterindonesia\ServicePattern\Contracts\IServiceEloquent;
+use Alterindonesia\ServicePattern\Libraries\ServiceResponse;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -18,7 +19,11 @@ class BaseServiceEloquent implements IServiceEloquent
 
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $model;
     protected Model|QueryBuilder|SpatieQueryBuilder|EloquentBuilder|null $originalModel;
+
     public string|JsonResource $resource;
+
+    public ServiceResponse $serviceResponse;
+
     protected array $result = [
         'status' => true,
         'model' => null,
@@ -30,17 +35,21 @@ class BaseServiceEloquent implements IServiceEloquent
 
     /**
      * BaseServiceEloquent constructor.
-     * @param Model $model
-     * @param JsonResource|null $resource
+     * @param  Model  $model
+     * @param  JsonResource  $resource
+     * @param  ServiceResponse  $serviceResponse
      */
     public function __construct(
         Model $model,
-        JsonResource $resource=null
+        JsonResource $resource,
+        ServiceResponse $serviceResponse
     ) {
         $this->initializeModel($model);
         $this->originalModel = $model;
         $this->result['model'] = $model;
-        $this->result['resource'] = $resource ?? null;
+        $this->result['resource'] = $resource;
+        $this->serviceResponse = $serviceResponse;
+        $this->resource = $resource;
     }
 
     public function initializeModel($model):void
@@ -64,9 +73,9 @@ class BaseServiceEloquent implements IServiceEloquent
     }
 
     /**
-     * @return array
+     * @return array|ServiceResponse
      */
-    public function index() : array
+    public function index() : array|ServiceResponse
     {
         $query = SpatieQueryBuilder::for($this->model)
             ->allowedFilters($this->getDefaultAllowedFilters())
@@ -75,7 +84,11 @@ class BaseServiceEloquent implements IServiceEloquent
         $query = $this->getDefaultWhere($query);
         $this->result['data'] = $query->paginate(request()->input('perPage') ?? 20);
         $this->result['messages'] = __("Data retrieved successfully");
-        return $this->result;
+        $this->serviceResponse->setData($this->result['data']);
+        $this->serviceResponse->setMessage($this->result['messages']);
+        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setResource($this->resource);
+        return $this->serviceResponse;
     }
 
     /**
@@ -90,9 +103,9 @@ class BaseServiceEloquent implements IServiceEloquent
     /**
      * @param $id
      * @param $field
-     * @return array
+     * @return array|ServiceResponse
      */
-    public function show($id, $field=null) : array
+    public function show($id, $field=null) : array|ServiceResponse
     {
         $first = $this->model->first();
         if (!$first) {
@@ -104,30 +117,40 @@ class BaseServiceEloquent implements IServiceEloquent
         $this->model = $this->onBeforeShow($this->model);
         $this->result['data'] = $this->model->first();
         $this->result['messages'] = __("Data retrieved successfully");
-        return $this->result;
+        $this->result['httpCode'] = 200;
+
+        $this->serviceResponse->setData($this->result['data']);
+        $this->serviceResponse->setMessage($this->result['messages']);
+        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setResource($this->resource);
+        return $this->serviceResponse;
     }
 
     /**
      * @param array $data
-     * @return array
+     * @return array|ServiceResponse
      */
-    public function store(array $data) : array
+    public function store(array $data) : array|ServiceResponse
     {
         $record = $this->appendCreatedBy($data);
-        $this->model = $this->model::create($record);
+        $this->model = $this->model->create($record);
         $this->result['data'] = $this->model;
         $this->onAfterCreate($this->model, $record);
         $this->result['messages'] = __("Data created successfully");
         $this->result['httpCode'] = 201;
-        return $this->result;
+        $this->serviceResponse->setData($this->result['data']);
+        $this->serviceResponse->setMessage($this->result['messages']);
+        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setResource($this->resource);
+        return $this->serviceResponse;
     }
 
     /**
      * @param $id
      * @param  array $data
-     * @return array
+     * @return array|ServiceResponse
      */
-    public function update($id, array $data) : array
+    public function update($id, array $data) : array|ServiceResponse
     {
         $first = $this->model->first();
         if (!$first) {
@@ -142,7 +165,11 @@ class BaseServiceEloquent implements IServiceEloquent
         $this->result['data'] = $this->model->first();
         $this->result['messages'] = __("Data updated successfully");
         $this->result['httpCode'] = 200;
-        return $this->result;
+        $this->serviceResponse->setData($this->result['data']);
+        $this->serviceResponse->setMessage($this->result['messages']);
+        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setResource($this->resource);
+        return $this->serviceResponse;
     }
 
     /**
@@ -157,7 +184,7 @@ class BaseServiceEloquent implements IServiceEloquent
         return $data;
     }
 
-    public function destroy($id) : array
+    public function destroy($id) : array|ServiceResponse
     {
         $this->model = $this->find($id);
         if (!$this->model) {
@@ -170,7 +197,11 @@ class BaseServiceEloquent implements IServiceEloquent
         $this->onAfterDelete($this->model);
         $this->result['data'] = $this->model;
         $this->result['messages'] = __("Data deleted successfully");
-        return $this->result;
+        $this->serviceResponse->setData($this->result['data']);
+        $this->serviceResponse->setMessage($this->result['messages']);
+        $this->serviceResponse->setHttpCode($this->result['httpCode']);
+        $this->serviceResponse->setResource($this->resource);
+        return $this->serviceResponse;
     }
 
     protected function getTableName(): string {
@@ -216,13 +247,9 @@ class BaseServiceEloquent implements IServiceEloquent
     {
         if($field === null) {
             $isUuid = preg_match('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/', $id);
-            if($isUuid) {
-                return $this->originalModel::where('uuid', $id)->first();
-            } else {
-                return $this->originalModel::find($id);
-            }
+            return $isUuid ? $this->originalModel->where('uuid', $id)->first() : $this->originalModel->find($id);
         }
-        return $this->originalModel::where($field, $id)->first();
+        return $this->originalModel->where($field, $id)->first();
     }
 
     public function validateModel($id, $field=null): array
