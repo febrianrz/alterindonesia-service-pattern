@@ -42,10 +42,6 @@ class BaseServiceEloquent implements IServiceEloquent
         $this->originalModel = $this->eloquentModel;
         $this->serviceResponse = app(ServiceResponse::class);
         $this->resource = $this->getResource();
-//        $this->result['model'] = $model;
-//        $this->result['resource'] = $resource;
-//        $this->serviceResponse = $serviceResponse;
-//        $this->resource = $resource;
     }
 
     public function initializeModel($model):void
@@ -302,12 +298,14 @@ class BaseServiceEloquent implements IServiceEloquent
 
     public function getDefaultAllowedFilters(): array
     {
-        return (new $this->originalModel())->getFillable();
+        return (new $this->model)->getFillable();
+
     }
 
     public function getDefaultAllowedSort(): array
     {
-        return (new $this->originalModel())->getFillable();
+        return (new $this->model)->getFillable();
+
     }
 
     public function getDefaultWhere($query): QueryBuilder|SpatieQueryBuilder|EloquentBuilder

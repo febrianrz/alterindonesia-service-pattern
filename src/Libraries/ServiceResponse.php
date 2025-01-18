@@ -6,12 +6,13 @@ use Alterindonesia\ServicePattern\Resources\AnonymousResource;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class ServiceResponse implements Arrayable
 {
-    private Collection|array|null|Model $data;
+    private Collection|array|null|Model|LengthAwarePaginator $data;
     private int $httpCode;
     private string $message;
     private bool $_isError;
@@ -37,7 +38,7 @@ class ServiceResponse implements Arrayable
         return $this->message === "" ? "Success" : $this->message;
     }
 
-    public function getData(): Collection|Model|array|null
+    public function getData(): Collection|Model|array|null|LengthAwarePaginator
     {
         return $this->data;
     }
@@ -91,7 +92,7 @@ class ServiceResponse implements Arrayable
         $this->httpCode = $code;
     }
 
-    public function setData(array|null|Collection|Model|Builder|QueryBuilder $data): void
+    public function setData(array|null|Collection|Model|Builder|QueryBuilder|LengthAwarePaginator $data): void
     {
         $this->data = $data;
     }
