@@ -15,7 +15,7 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "spatie/laravel-query-builder": "^5.8"
+        "spatie/laravel-query-builder": "^6.3.1"
     },
     "extra": {
         "laravel": {
